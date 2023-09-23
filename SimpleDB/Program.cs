@@ -36,7 +36,8 @@ namespace SimpleDB
 
                     break;
                 case "--update":
-                    Atualizar(valores[0], valores[1]);
+                    if (Atualizar(valores[0], valores[1])) Console.WriteLine("updated");
+                    else Console.WriteLine("not found");
                     break;
             }
         }
@@ -131,9 +132,53 @@ namespace SimpleDB
             return null;
         }
 
-        static void Atualizar(string chave, string novoValor)
+        static bool Atualizar(string chave, string novoValor)
         {
-            Console.WriteLine("Atualizar [" + chave + "] = <" + novoValor + ">");
+            string tempPath = tempPrefix + arquivoPath;
+            bool editou = false;
+
+            // Cria um arquivo temporário
+            StreamWriter temp_arquivo = new StreamWriter(tempPath, true);
+            StreamReader arquivo = new StreamReader(arquivoPath);
+
+            if (arquivo == null || arquivo.EndOfStream || temp_arquivo == null)
+            {
+                return false;
+            }
+
+            string? linha = arquivo.ReadLine();
+
+            while (linha != null)
+            {
+                string[] separado = linha.Split(',');
+
+                // Passa linha por linha para o arquivo temporário e se a chave for igual, insere o novo valor
+                if (!editou && separado[0] == chave)
+                {
+                    temp_arquivo.WriteLine(chave + "," + novoValor);
+                    editou = true;
+                }
+                else temp_arquivo.WriteLine(linha);
+
+                linha = arquivo.ReadLine();
+            }
+
+            arquivo.Close();
+            temp_arquivo.Close();
+
+            if (editou)
+            {
+                // Substitui o arquivo original pelo temporário
+                File.Delete(arquivoPath);
+                File.Move(tempPath, arquivoPath);
+            }
+            else
+            {
+                // Remove o arquivo temporário
+                File.Delete(tempPath);
+            }
+
+            return editou;
         }
     }
 }
