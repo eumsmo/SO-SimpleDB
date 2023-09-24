@@ -12,6 +12,13 @@ namespace SimpleDB
         {
             if (args.Length == 0) return;
 
+            /*Args serão os argumentos do programa, o qual o usuário terá os seguintes comandos:
+              . Enserir  . Remover  . Procurar  . Substituir
+              
+              Além disso, teremos as chaves e os valores:
+              . Chave - Guarda referências do programa, variando entre palavras ou números;
+              . Valor - É uma informação qualquer oferecida pelo usuário.*/
+
             string[] separado = args[0].Split('=');
 
             string comando = separado[0];
@@ -48,6 +55,10 @@ namespace SimpleDB
             {
                 return false;
             }
+
+            /*O comando StreamWritepoderá receber um arquivo ou até mesmo cria-lo se o mesmo não existir.
+            Logo depois, ele vai abrir o arquivo e lê-lo, após inserir as informações o mesmo será fechado, desse
+            modo, evitando que o arquivo fique aberto e impeça as outras pessoas de acessarem.*/
 
             StreamWriter arquivo = new StreamWriter(arquivoPath, true);
 
