@@ -13,39 +13,66 @@ namespace SimpleDB
             if (args.Length == 0) return;
 
             /*Args serão os argumentos do programa, o qual o usuário terá os seguintes comandos:
-              . Enserir  . Remover  . Procurar  . Substituir
+              . Inserir  . Remover  . Procurar  . Substituir
               
               Além disso, teremos as chaves e os valores:
               . Chave - Guarda referências do programa, variando entre palavras ou números;
               . Valor - É uma informação qualquer oferecida pelo usuário.*/
+            string[] separado = args[0].Split('=', 2);
 
-            string[] separado = args[0].Split('=');
+            if (separado.Length < 2) {
+                Console.WriteLine("invalid command: missing '='");
+                return;
+            }
 
             string comando = separado[0];
-            string[] valores = separado[1].Split(','); // [0] = chave, [1] = valor
+            string[] valores = separado[1].Split(',', 2); // [0] = chave, [1] = valor
 
-            switch (comando)
-            {
-                case "--insert":
-                    if (Inserir(valores[0], valores[1])) Console.WriteLine("inserted");
-                    else Console.WriteLine("key already exists");
+            if (valores[0] == "") {
+                Console.WriteLine("invalid command: key missing");
+                return;
+            }
 
-                    break;
-                case "--remove":
-                    if (Remover(valores[0])) Console.WriteLine("removed");
-                    else Console.WriteLine("not found");
-                    break;
-                case "--search":
-                    string? valor = Buscar(valores[0]);
+            try {
 
-                    if (valor != null) Console.WriteLine(valor);
-                    else Console.WriteLine("not found");
+                switch (comando) {
+                    case "--insert":
+                        if (!CheckValueInput(valores)) return;
 
-                    break;
-                case "--update":
-                    if (Atualizar(valores[0], valores[1])) Console.WriteLine("updated");
-                    else Console.WriteLine("not found");
-                    break;
+                        if (Inserir(valores[0], valores[1])) Console.WriteLine("inserted");
+                        else Console.WriteLine("key already exists");
+
+                        break;
+                    case "--remove":
+                        if (!CheckKeyOnlyInput(valores)) return;
+
+                        if (Remover(valores[0])) Console.WriteLine("removed");
+                        else Console.WriteLine("not found");
+
+                        break;
+                    case "--search":
+                        if (!CheckKeyOnlyInput(valores)) return;
+
+                        string? valor = Buscar(valores[0]);
+
+                        if (valor != null) Console.WriteLine(valor);
+                        else Console.WriteLine("not found");
+
+                        break;
+                    case "--update":
+                        if (!CheckValueInput(valores)) return;
+
+                        if (Atualizar(valores[0], valores[1])) Console.WriteLine("updated");
+                        else Console.WriteLine("not found");
+
+                        break;
+                    default:
+                        Console.WriteLine("invalid command: unknown command");
+                        break;
+                }
+
+            } catch (Exception e) {
+                Console.WriteLine("error: " + e.Message);
             }
         }
 
@@ -56,9 +83,9 @@ namespace SimpleDB
                 return false;
             }
 
-            /*O comando StreamWritepoderá receber um arquivo ou até mesmo cria-lo se o mesmo não existir.
+            /* O comando StreamWrite poderá receber um arquivo ou até mesmo cria-lo se o mesmo não existir.
             Logo depois, ele vai abrir o arquivo e lê-lo, após inserir as informações o mesmo será fechado, desse
-            modo, evitando que o arquivo fique aberto e impeça as outras pessoas de acessarem.*/
+            modo, evitando que o arquivo fique aberto e impeça as outras pessoas de acessarem. */
 
             StreamWriter arquivo = new StreamWriter(arquivoPath, true);
 
@@ -72,6 +99,10 @@ namespace SimpleDB
 
         static bool Remover(string chave)
         {
+            if (!File.Exists(arquivoPath)) {
+                return false;
+            }
+
             string tempPath = tempPrefix + arquivoPath;
             bool removeu = false;
 
@@ -88,7 +119,7 @@ namespace SimpleDB
 
             while (linha != null)
             {
-                string[] separado = linha.Split(',');
+                string[] separado = linha.Split(',', 2);
 
                 // Passa linha por linha para o arquivo temporário e se a chave for igual, ignora
                 if (separado[0] == chave) removeu = true;
@@ -117,6 +148,10 @@ namespace SimpleDB
 
         static string? Buscar(string chave)
         {
+            if (!File.Exists(arquivoPath)) {
+                return null;
+            }
+
             StreamReader arquivo = new StreamReader(arquivoPath);
 
             if (arquivo == null || arquivo.EndOfStream)
@@ -128,7 +163,7 @@ namespace SimpleDB
 
             while (linha != null)
             {
-                string[] separado = linha.Split(',');
+                string[] separado = linha.Split(',', 2);
 
                 if (separado[0] == chave)
                 {
@@ -161,7 +196,7 @@ namespace SimpleDB
 
             while (linha != null)
             {
-                string[] separado = linha.Split(',');
+                string[] separado = linha.Split(',', 2);
 
                 // Passa linha por linha para o arquivo temporário e se a chave for igual, insere o novo valor
                 if (!editou && separado[0] == chave)
@@ -190,6 +225,23 @@ namespace SimpleDB
             }
 
             return editou;
+        }
+
+        static bool CheckValueInput(string[] valores) {
+            if (valores.Length < 2) {
+                Console.WriteLine("invalid command: value missing");
+                return false;
+            }
+
+            return true;
+        }
+
+        static bool CheckKeyOnlyInput(string[] valores) {
+            if (valores.Length == 1) return true;
+
+
+            Console.WriteLine("invalid command: too many values");
+            return false;
         }
     }
 }
