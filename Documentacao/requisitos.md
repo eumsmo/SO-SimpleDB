@@ -1,8 +1,8 @@
 ## Parte A
 O banco de dados deve oferecer os seguintes requisitos funcionais:
-- [x] **RF-1:** Suportar a inserção de objetos no banco de dados.
--  [ ] **RF-2:** Suportar a remoção objetos do banco de dados.
--  [ ] **RF-3:** Suportar atualização objetos no banco de dados.
+-  [x] **RF-1:** Suportar a inserção de objetos no banco de dados.
+-  [x] **RF-2:** Suportar a remoção objetos do banco de dados.
+-  [x] **RF-3:** Suportar atualização objetos no banco de dados.
 -  [x] **RF-4:** Suportar a pesquisa objetos no banco de dados.
 -  [x] **RF-5:** Ser capaz de persistir os objetos do banco de dados em um arquivo.
 
