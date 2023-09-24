@@ -16,7 +16,7 @@ namespace SimpleDB
               . Inserir  . Remover  . Procurar  . Substituir
               
               Além disso, teremos as chaves e os valores:
-              . Chave - Guarda referências do programa, variando entre palavras ou números;
+              . Chave - Guarda referências do programa, sempre um inteiro positivo;
               . Valor - É uma informação qualquer oferecida pelo usuário.*/
             string[] separado = args[0].Split('=', 2);
 
@@ -33,13 +33,24 @@ namespace SimpleDB
                 return;
             }
 
+            int chave;
+            if (!int.TryParse(valores[0], out chave)) {
+                Console.WriteLine("invalid command: key must be an integer");
+                return;
+            }
+
+            if (chave < 0) {
+                Console.WriteLine("invalid command: key must be positive");
+                return;
+            }
+
             try {
 
                 switch (comando) {
                     case "--insert":
                         if (!CheckValueInput(valores)) return;
 
-                        if (Inserir(valores[0], valores[1])) Console.WriteLine("inserted");
+                        if (Inserir(valores[0], valores[1])) Console.WriteLine(valores[0]);
                         else Console.WriteLine("key already exists");
 
                         break;
@@ -62,7 +73,7 @@ namespace SimpleDB
                     case "--update":
                         if (!CheckValueInput(valores)) return;
 
-                        if (Atualizar(valores[0], valores[1])) Console.WriteLine("updated");
+                        if (Atualizar(valores[0], valores[1])) Console.WriteLine(valores[0]);
                         else Console.WriteLine("not found");
 
                         break;
