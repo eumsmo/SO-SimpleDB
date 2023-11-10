@@ -1,61 +1,74 @@
 ﻿using System;
-using System.IO;
+using MSMQ.Messaging;
 
-namespace SimpleDBClient 
-{
-    class Program 
-    {
-        static void Main(string[] args) 
-        {
-            while(true) 
-            {
+namespace SimpleDBClient {
+    class Program {
+
+        const string servidorQueuePath = ".\\Private$\\SimpleDBQueue";
+
+        static void Main(string[] args) {
+            while(true) {
                 string? entrada = Console.ReadLine();
 
                 if (entrada == null) continue;
 
                 string[] entradaSeparada = entrada.Split(" ", 2);
                 string metodo = entradaSeparada[0];
-                string retorno = "command does not exist";
+                string[] valores = entradaSeparada[1].Split(",", 2);
 
-                switch(metodo) 
-                {
+                int chave = int.Parse(valores[0]);
+                string valor = valores[1];
+
+                Comando comando = new Comando();
+                comando.chave = chave;
+                comando.valor = valor;
+                
+                switch(metodo) {
                     case "insert":
-                        retorno = Inserir();
+                        comando.op = Operacao.Inserir;
                         break;
                     case "remove":
-                        retorno = Remover();
+                        comando.op = Operacao.Remover;
                         break;
                     case "search":
-                        retorno = Buscar();
+                        comando.op = Operacao.Procurar;
                         break;
                     case "update":
-                        retorno = Atualizar();
+                        comando.op = Operacao.Substituir;
                         break;
                     case "quit":
                         return;
                 }
 
-                Console.WriteLine(retorno);
+                MessageQueue messageQueue = new MessageQueue(servidorQueuePath);
+                messageQueue.Formatter = new XmlMessageFormatter(new Type[]{typeof(Comando)});
+
+                try {
+                    Message message = new Message(comando);
+                    messageQueue.Send(message);
+                    Console.WriteLine("Message sent");
+                    messageQueue.Close();
+                } catch (MessageQueueException e) {
+                    Console.WriteLine("error: " + e.Message);
+                } catch (InvalidOperationException e) {
+                    Console.WriteLine("error: " + e.Message);
+                }
             }
         }
 
-        static string Inserir()
-        {
+        static string Inserir() {
             return "inserted";
         }
 
-        static string Remover()
-        {
+        static string Remover() {
             return "removed";
         }
 
-        static string Buscar()
-        {
-            return "valeu here";
+        static string Buscar() {
+            return "value here";
         }
 
-        static string Atualizar()
-        {
+        static string Atualizar() {
             return "updated";
         }
     }
