@@ -1,16 +1,73 @@
 ﻿using System;
-using System.IO;
+using MSMQ.Messaging;
 
 namespace SimpleDB
 {
     class Program
     {
         const string arquivoPath = "simpledb.db"; // banco de dados
+        const string queuePath = ".\\Private$\\SimpleDBQueue"; // fila de mensagens
         
         static void Main(string[] args)
         {
-            if (args.Length == 0) return;
+            BancoDeDados bancoDeDados = new BancoDeDados(arquivoPath);
 
+            if (args.Length > 0) {
+                GetLineCommands(args, bancoDeDados);
+                return;
+            }
+
+            CreateQueue();
+
+            Comando teste = new Comando();
+            teste.op = Operacao.Inserir;
+            teste.chave = 1;
+            teste.valor = "teste";
+
+            MessageQueue messageQueue = new MessageQueue(queuePath);
+            messageQueue.Formatter = new XmlMessageFormatter(new Type[]{typeof(Comando)});
+
+            try {
+                messageQueue.Send(teste);
+                Console.WriteLine("Message sent");
+
+                Message message = messageQueue.Receive();
+                Console.WriteLine("Message received");
+
+                Comando comando = (Comando) message.Body;
+                Console.WriteLine(comando.op);
+                Console.WriteLine(comando.chave);
+                Console.WriteLine(comando.valor);
+                messageQueue.Close();
+
+            } catch (MessageQueueException e) {
+                Console.WriteLine("error: " + e.Message);
+            } catch (InvalidOperationException e) {
+                Console.WriteLine("error: " + e.Message);
+            }
+
+            DeleteQueue();
+        }
+
+        static void CreateQueue() {
+            if (!MessageQueue.Exists(queuePath)) {
+                MessageQueue.Create(queuePath);
+                Console.WriteLine("Queue created");
+            } else {
+                Console.WriteLine("Queue already exists");
+            }
+        }
+
+        static void DeleteQueue() {
+            if (MessageQueue.Exists(queuePath)) {
+                MessageQueue.Delete(queuePath);
+                Console.WriteLine("Queue deleted");
+            } else {
+                Console.WriteLine("Queue does not exist");
+            }
+        }
+
+        static void GetLineCommands(string[] args, BancoDeDados bancoDeDados) {
             /*Args serão os argumentos do programa, o qual o usuário terá os seguintes comandos:
               . Inserir  . Remover  . Procurar  . Substituir
               
@@ -42,11 +99,8 @@ namespace SimpleDB
                 Console.WriteLine("invalid command: key must be positive");
                 return;
             }
-
-            BancoDeDados bancoDeDados = new BancoDeDados(arquivoPath);
-
+            
             try {
-
                 switch (comando) {
                     case "--insert":
                         if (!CheckValueInput(valores)) return;
