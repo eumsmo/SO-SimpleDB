@@ -14,6 +14,37 @@ namespace SimpleDB
             this.tempPrefix = tempPrefix;
         }
 
+        public string Executar(Comando comando) {
+            switch (comando.op) {
+                case Operacao.Inserir:
+                    if (comando.valor == null) return "invalid command: invalid value";
+
+                    if (Inserir(comando.chave, comando.valor)) return comando.chave.ToString();
+                    return "already exists";
+                case Operacao.Remover:
+                    if (Remover(comando.chave)) return "removed";
+                    return "not found";
+                case Operacao.Procurar:
+                    string? valor = Buscar(comando.chave);
+
+                    if (valor != null) return valor;
+                    return "not found";
+                case Operacao.Atualizar:
+                    if (comando.valor == null) return "invalid command: invalid value";
+
+                    if (Atualizar(comando.chave, comando.valor)) return comando.chave.ToString();
+                    return "not found";
+            }
+
+            return "invalid command: unknown command";
+        }
+
+        public bool Inserir(int chave, string valor)
+        {
+            return Inserir(chave.ToString(), valor);
+        }
+
+
         public bool Inserir(string chave, string valor)
         {
             if (Buscar(chave) != null) {
@@ -33,6 +64,11 @@ namespace SimpleDB
 
             return true;
         }
+
+        public bool Remover(int chave) {
+            return Remover(chave.ToString());
+        }
+
 
         public bool Remover(string chave)
         {
@@ -79,6 +115,11 @@ namespace SimpleDB
             return removeu;
         }
 
+        public string? Buscar(int chave) {
+            return Buscar(chave.ToString());
+        }
+
+
         public string? Buscar(string chave)
         {
             if (!File.Exists(arquivoPath)) {
@@ -97,6 +138,7 @@ namespace SimpleDB
                 string[] separado = linha.Split(',', 2);
 
                 if (separado[0] == chave) {
+                    arquivo.Close();
                     return separado[1];
                 }
 
@@ -107,6 +149,11 @@ namespace SimpleDB
 
             return null;
         }
+
+        public bool Atualizar(int chave, string novoValor) {
+            return Atualizar(chave.ToString(), novoValor);
+        }
+
 
         public bool Atualizar(string chave, string novoValor)
         {

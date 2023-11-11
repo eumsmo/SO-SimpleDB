@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using MSMQ.Messaging;
 
 namespace SimpleDB
@@ -19,42 +19,33 @@ namespace SimpleDB
 
             CreateQueue();
 
-            Comando teste = new Comando();
-            teste.op = Operacao.Inserir;
-            teste.chave = 1;
-            teste.valor = "teste";
-
             MessageQueue messageQueue = new MessageQueue(queuePath);
-            messageQueue.Formatter = new XmlMessageFormatter(new Type[]{typeof(Comando)});
+            messageQueue.Formatter = new XmlMessageFormatter(new Type[] { typeof(Comando) });
 
-            try {
-                messageQueue.Send(teste);
-                Console.WriteLine("Message sent");
+            while (true) {
+                try {
+                    Message message = messageQueue.Receive();
+                    Comando comando = (Comando)message.Body;
 
-                Message message = messageQueue.Receive();
-                Console.WriteLine("Message received");
+                    string resposta = bancoDeDados.Executar(comando);
+                    Console.WriteLine(resposta);
 
-                Comando comando = (Comando) message.Body;
-                Console.WriteLine(comando.op);
-                Console.WriteLine(comando.chave);
-                Console.WriteLine(comando.valor);
-                messageQueue.Close();
+                    messageQueue.Close();
 
-            } catch (MessageQueueException e) {
-                Console.WriteLine("error: " + e.Message);
-            } catch (InvalidOperationException e) {
-                Console.WriteLine("error: " + e.Message);
+                }
+                catch (MessageQueueException e) {
+                    Console.WriteLine("error: " + e.Message);
+                }
+                catch (InvalidOperationException e) {
+                    Console.WriteLine("error: " + e.Message);
+                }
             }
-
-            DeleteQueue();
+            // DeleteQueue();
         }
 
         static void CreateQueue() {
             if (!MessageQueue.Exists(queuePath)) {
                 MessageQueue.Create(queuePath);
-                Console.WriteLine("Queue created");
-            } else {
-                Console.WriteLine("Queue already exists");
             }
         }
 
@@ -62,7 +53,8 @@ namespace SimpleDB
             if (MessageQueue.Exists(queuePath)) {
                 MessageQueue.Delete(queuePath);
                 Console.WriteLine("Queue deleted");
-            } else {
+            }
+            else {
                 Console.WriteLine("Queue does not exist");
             }
         }
@@ -81,7 +73,7 @@ namespace SimpleDB
                 return;
             }
 
-            string comando = separado[0];
+            string metodo = separado[0];
             string[] valores = separado[1].Split(',', 2); // [0] = chave, [1] = valor
 
             if (valores[0] == "") {
@@ -99,45 +91,39 @@ namespace SimpleDB
                 Console.WriteLine("invalid command: key must be positive");
                 return;
             }
-            
+
+            Comando comando = new Comando();
+            comando.chave = chave;
+
+            switch (metodo) {
+                case "--insert":
+                    if (!CheckValueInput(valores)) return;
+                    comando.valor = valores[1];
+                    comando.op = Operacao.Inserir;
+                    break;
+                case "--remove":
+                    if (!CheckKeyOnlyInput(valores)) return;
+                    comando.op = Operacao.Remover;
+                    break;
+                case "--search":
+                    if (!CheckKeyOnlyInput(valores)) return;
+                    comando.op = Operacao.Procurar;
+                    break;
+                case "--update":
+                    if (!CheckValueInput(valores)) return;
+                    comando.valor = valores[1];
+                    comando.op = Operacao.Atualizar;
+                    break;
+                default:
+                    Console.WriteLine("invalid command: unknown command");
+                    break;
+            }
+
             try {
-                switch (comando) {
-                    case "--insert":
-                        if (!CheckValueInput(valores)) return;
-
-                        if (bancoDeDados.Inserir(valores[0], valores[1])) Console.WriteLine(valores[0]);
-                        else Console.WriteLine("key already exists");
-
-                        break;
-                    case "--remove":
-                        if (!CheckKeyOnlyInput(valores)) return;
-
-                        if (bancoDeDados.Remover(valores[0])) Console.WriteLine("removed");
-                        else Console.WriteLine("not found");
-
-                        break;
-                    case "--search":
-                        if (!CheckKeyOnlyInput(valores)) return;
-
-                        string? valor = bancoDeDados.Buscar(valores[0]);
-
-                        if (valor != null) Console.WriteLine(valor);
-                        else Console.WriteLine("not found");
-
-                        break;
-                    case "--update":
-                        if (!CheckValueInput(valores)) return;
-
-                        if (bancoDeDados.Atualizar(valores[0], valores[1])) Console.WriteLine(valores[0]);
-                        else Console.WriteLine("not found");
-
-                        break;
-                    default:
-                        Console.WriteLine("invalid command: unknown command");
-                        break;
-                }
-
-            } catch (Exception e) {
+                string resposta = bancoDeDados.Executar(comando);
+                Console.WriteLine(resposta);
+            }
+            catch (Exception e) {
                 Console.WriteLine("error: " + e.Message);
             }
         }

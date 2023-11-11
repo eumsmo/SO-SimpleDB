@@ -3,7 +3,7 @@ namespace SimpleDB {
         Inserir,
         Remover,
         Procurar,
-        Substituir
+        Atualizar
     }
 
     public class Comando {

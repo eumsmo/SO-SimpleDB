@@ -3,7 +3,7 @@ namespace SimpleDBClient {
         Inserir,
         Remover,
         Procurar,
-        Substituir
+        Atualizar
     }
 
     public class Comando {

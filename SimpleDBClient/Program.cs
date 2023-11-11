@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using MSMQ.Messaging;
 
 namespace SimpleDBClient {
@@ -17,13 +17,16 @@ namespace SimpleDBClient {
                 string[] valores = entradaSeparada[1].Split(",", 2);
 
                 int chave = int.Parse(valores[0]);
-                string valor = valores[1];
 
                 Comando comando = new Comando();
                 comando.chave = chave;
-                comando.valor = valor;
-                
-                switch(metodo) {
+
+                if (valores.Length > 1)
+                {
+                    comando.valor = valores[1];
+                }
+
+                switch (metodo) {
                     case "insert":
                         comando.op = Operacao.Inserir;
                         break;
@@ -34,7 +37,7 @@ namespace SimpleDBClient {
                         comando.op = Operacao.Procurar;
                         break;
                     case "update":
-                        comando.op = Operacao.Substituir;
+                        comando.op = Operacao.Atualizar;
                         break;
                     case "quit":
                         return;
@@ -46,7 +49,6 @@ namespace SimpleDBClient {
                 try {
                     Message message = new Message(comando);
                     messageQueue.Send(message);
-                    Console.WriteLine("Message sent");
                     messageQueue.Close();
                 } catch (MessageQueueException e) {
                     Console.WriteLine("error: " + e.Message);
