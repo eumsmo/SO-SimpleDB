@@ -7,7 +7,9 @@ namespace SimpleDB
     {
         const string arquivoPath = "simpledb.db"; // banco de dados
         const string queuePath = ".\\Private$\\SimpleDBQueue"; // fila de mensagens
-        
+        const string cliQueuePath = ".\\Private$\\SimpleDBCliQueue"; // fila de mensagens do cliente 
+
+
         static void Main(string[] args)
         {
             BancoDeDados bancoDeDados = new BancoDeDados(arquivoPath);
@@ -22,16 +24,19 @@ namespace SimpleDB
             MessageQueue messageQueue = new MessageQueue(queuePath);
             messageQueue.Formatter = new XmlMessageFormatter(new Type[] { typeof(Comando) });
 
+            MessageQueue cliMessageQueue = new MessageQueue(cliQueuePath);
+            cliMessageQueue.Formatter = new XmlMessageFormatter(new Type[] { typeof(string) });
+
             while (true) {
                 try {
                     Message message = messageQueue.Receive();
                     Comando comando = (Comando)message.Body;
-
-                    string resposta = bancoDeDados.Executar(comando);
-                    Console.WriteLine(resposta);
-
                     messageQueue.Close();
 
+                    string resposta = bancoDeDados.Executar(comando);
+                    Message cliMessage = new Message(resposta);
+                    cliMessageQueue.Send(cliMessage);
+                    cliMessageQueue.Close();
                 }
                 catch (MessageQueueException e) {
                     Console.WriteLine("error: " + e.Message);
