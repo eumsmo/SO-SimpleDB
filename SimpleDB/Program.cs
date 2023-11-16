@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using MSMQ.Messaging;
 
 namespace SimpleDB
@@ -24,19 +25,18 @@ namespace SimpleDB
             MessageQueue messageQueue = new MessageQueue(queuePath);
             messageQueue.Formatter = new XmlMessageFormatter(new Type[] { typeof(Comando) });
 
-            MessageQueue cliMessageQueue = new MessageQueue(cliQueuePath);
-            cliMessageQueue.Formatter = new XmlMessageFormatter(new Type[] { typeof(string) });
-
-            while (true) {
-                try {
+            while (true) 
+            {
+                try 
+                {
+                    Console.WriteLine("Waiting for message...");
                     Message message = messageQueue.Receive();
                     Comando comando = (Comando)message.Body;
                     messageQueue.Close();
 
-                    string resposta = bancoDeDados.Executar(comando);
-                    Message cliMessage = new Message(resposta);
-                    cliMessageQueue.Send(cliMessage);
-                    cliMessageQueue.Close();
+                    //Criando thread para responder o cliente
+                    Thread thread = new Thread(() => AnswerClient(bancoDeDados, comando));
+                    thread.Start();
                 }
                 catch (MessageQueueException e) {
                     Console.WriteLine("error: " + e.Message);
@@ -48,19 +48,22 @@ namespace SimpleDB
             // DeleteQueue();
         }
 
+        static void AnswerClient(BancoDeDados bancoDeDados, Comando comando)
+        {
+            //Processando a resposta
+            Console.WriteLine("Processing...");
+            string resposta = bancoDeDados.Executar(comando);
+
+            //Enviando a resposta
+            Console.WriteLine("Sending answer...");
+            MessageQueue cliMessageQueue = new MessageQueue(cliQueuePath);
+            cliMessageQueue.Formatter = new XmlMessageFormatter(new Type[]{typeof(string)});
+            cliMessageQueue.Close();
+        }
+
         static void CreateQueue() {
             if (!MessageQueue.Exists(queuePath)) {
                 MessageQueue.Create(queuePath);
-            }
-        }
-
-        static void DeleteQueue() {
-            if (MessageQueue.Exists(queuePath)) {
-                MessageQueue.Delete(queuePath);
-                Console.WriteLine("Queue deleted");
-            }
-            else {
-                Console.WriteLine("Queue does not exist");
             }
         }
 

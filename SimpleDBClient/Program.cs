@@ -53,9 +53,13 @@ namespace SimpleDBClient {
                 MessageQueue cliMessageQueue = new MessageQueue(queuePath);
                 cliMessageQueue.Formatter = new XmlMessageFormatter(new Type[] { typeof(string) });
 
-                try {
+                try 
+                {
                     Message message = new Message(comando);
-                    messageQueue.Send(message);
+                    for(int i = 0; i < 3; i++)
+                    {
+                        messageQueue.Send(message);
+                    }
                     messageQueue.Close();
 
                     Message cliMessage = cliMessageQueue.Receive();
