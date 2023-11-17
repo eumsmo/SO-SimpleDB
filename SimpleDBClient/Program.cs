@@ -1,5 +1,6 @@
 using System;
 using MSMQ.Messaging;
+using System.Diagnostics;
 
 namespace SimpleDBClient {
     class Program {
@@ -8,7 +9,8 @@ namespace SimpleDBClient {
         const string servidorQueuePath = ".\\Private$\\SimpleDBQueue";
 
         static void Main(string[] args) {
-            CreateQueue();
+            Process currentProcess = Process.GetCurrentProcess();
+            string path = CreateQueue(currentProcess.Id);
 
             while (true) {
                 string? entrada = Console.ReadLine();
@@ -18,7 +20,8 @@ namespace SimpleDBClient {
                 string[] entradaSeparada = entrada.Split(" ", 2);
                 string metodo = entradaSeparada[0];
 
-                Comando comando = new Comando();
+                Requisicao comando = new Requisicao();
+                comando.path = path;
 
                 switch (metodo) {
                     case "insert":
@@ -34,6 +37,7 @@ namespace SimpleDBClient {
                         comando.op = Operacao.Atualizar;
                         break;
                     case "quit":
+                        DeleteQueue(path);
                         return;
                 }
 
@@ -48,18 +52,14 @@ namespace SimpleDBClient {
 
 
                 MessageQueue messageQueue = new MessageQueue(servidorQueuePath);
-                messageQueue.Formatter = new XmlMessageFormatter(new Type[]{typeof(Comando)});
+                messageQueue.Formatter = new XmlMessageFormatter(new Type[]{typeof(Requisicao)});
 
-                MessageQueue cliMessageQueue = new MessageQueue(queuePath);
+                MessageQueue cliMessageQueue = new MessageQueue(path);
                 cliMessageQueue.Formatter = new XmlMessageFormatter(new Type[] { typeof(string) });
+                cliMessageQueue.Purge();
 
-                try 
-                {
-                    Message message = new Message(comando);
-                    for(int i = 0; i < 3; i++)
-                    {
-                        messageQueue.Send(message);
-                    }
+                try {
+                    messageQueue.Send(new Message(comando));
                     messageQueue.Close();
 
                     Message cliMessage = cliMessageQueue.Receive();
@@ -75,21 +75,19 @@ namespace SimpleDBClient {
                     Console.WriteLine("error: " + e.Message);
                 }
             }
-
-            DeleteQueue();
         }
 
-        static void CreateQueue() {
-            if (!MessageQueue.Exists(queuePath))
-            {
-                MessageQueue.Create(queuePath);
+        static string CreateQueue(int id) {
+            string path = queuePath + "_" + id.ToString();
+            if (!MessageQueue.Exists(path)) {
+                MessageQueue.Create(path);
             }
+            return path;
         }
 
-        static void DeleteQueue() {
-            if (MessageQueue.Exists(queuePath))
-            {
-                MessageQueue.Delete(queuePath);
+        static void DeleteQueue(string path) {
+            if (MessageQueue.Exists(path)) {
+                MessageQueue.Delete(path);
             }
     }
 }

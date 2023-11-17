@@ -11,4 +11,8 @@ namespace SimpleDB {
         public int chave;
         public string? valor;
     }
+
+    public class Requisicao: Comando {
+        public string? path;
+    }
 }

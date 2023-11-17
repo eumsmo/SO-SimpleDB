@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using MSMQ.Messaging;
 
@@ -8,9 +8,7 @@ namespace SimpleDB
     {
         const string arquivoPath = "simpledb.db"; // banco de dados
         const string queuePath = ".\\Private$\\SimpleDBQueue"; // fila de mensagens
-        const string cliQueuePath = ".\\Private$\\SimpleDBCliQueue"; // fila de mensagens do cliente 
-
-
+        
         static void Main(string[] args)
         {
             BancoDeDados bancoDeDados = new BancoDeDados(arquivoPath);
@@ -23,41 +21,40 @@ namespace SimpleDB
             CreateQueue();
 
             MessageQueue messageQueue = new MessageQueue(queuePath);
-            messageQueue.Formatter = new XmlMessageFormatter(new Type[] { typeof(Comando) });
+            messageQueue.Formatter = new XmlMessageFormatter(new Type[]{typeof(Requisicao)});
 
-            while (true) 
-            {
-                try 
-                {
-                    Console.WriteLine("Waiting for message...");
+            int teste = 0;
+
+            while(true) {
+                try {
                     Message message = messageQueue.Receive();
-                    Comando comando = (Comando)message.Body;
-                    messageQueue.Close();
+                    Requisicao requisicao = (Requisicao) message.Body;
+                    teste++;
 
-                    //Criando thread para responder o cliente
-                    Thread thread = new Thread(() => AnswerClient(bancoDeDados, comando));
+                    // Criando thread para responder o cliente
+                    Thread thread = new Thread(() => AnswerClient(bancoDeDados, requisicao, teste));
                     thread.Start();
-                }
-                catch (MessageQueueException e) {
+                } catch (MessageQueueException e) {
                     Console.WriteLine("error: " + e.Message);
-                }
-                catch (InvalidOperationException e) {
+                } catch (InvalidOperationException e) {
                     Console.WriteLine("error: " + e.Message);
                 }
             }
-            // DeleteQueue();
         }
 
-        static void AnswerClient(BancoDeDados bancoDeDados, Comando comando)
-        {
-            //Processando a resposta
-            Console.WriteLine("Processing...");
-            string resposta = bancoDeDados.Executar(comando);
+        static void AnswerClient(BancoDeDados bancoDeDados, Requisicao requisicao, int teste) {
+            if (teste % 2 == 1)
+                Thread.Sleep(3000);
 
-            //Enviando a resposta
-            Console.WriteLine("Sending answer...");
-            MessageQueue cliMessageQueue = new MessageQueue(cliQueuePath);
+            // FAZER: Testar se a requisição está correta (possui path e comando)
+
+            // Processando resposta
+            string resposta = bancoDeDados.Executar(requisicao);
+
+            // Enviando resposta
+            MessageQueue cliMessageQueue = new MessageQueue(requisicao.path);
             cliMessageQueue.Formatter = new XmlMessageFormatter(new Type[]{typeof(string)});
+            cliMessageQueue.Send(new Message(resposta));
             cliMessageQueue.Close();
         }
 
@@ -126,12 +123,11 @@ namespace SimpleDB
                     Console.WriteLine("invalid command: unknown command");
                     break;
             }
-
+            
             try {
                 string resposta = bancoDeDados.Executar(comando);
                 Console.WriteLine(resposta);
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 Console.WriteLine("error: " + e.Message);
             }
         }
