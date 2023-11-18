@@ -23,16 +23,18 @@ namespace SimpleDB
             MessageQueue messageQueue = new MessageQueue(queuePath);
             messageQueue.Formatter = new XmlMessageFormatter(new Type[]{typeof(Requisicao)});
 
-            int teste = 0;
+            // No sinal de interrupção, deletar a fila 
+            Console.CancelKeyPress += delegate(object? sender, ConsoleCancelEventArgs e) { 
+                DeleteQueue(); 
+            }; 
 
             while(true) {
                 try {
                     Message message = messageQueue.Receive();
                     Requisicao requisicao = (Requisicao) message.Body;
-                    teste++;
 
                     // Criando thread para responder o cliente
-                    Thread thread = new Thread(() => AnswerClient(bancoDeDados, requisicao, teste));
+                    Thread thread = new Thread(() => AnswerClient(bancoDeDados, requisicao));
                     thread.Start();
                 } catch (MessageQueueException e) {
                     Console.WriteLine("error: " + e.Message);
@@ -42,10 +44,7 @@ namespace SimpleDB
             }
         }
 
-        static void AnswerClient(BancoDeDados bancoDeDados, Requisicao requisicao, int teste) {
-            if (teste % 2 == 1)
-                Thread.Sleep(3000);
-
+        static void AnswerClient(BancoDeDados bancoDeDados, Requisicao requisicao) {
             // FAZER: Testar se a requisição está correta (possui path e comando)
 
             // Processando resposta
@@ -61,6 +60,12 @@ namespace SimpleDB
         static void CreateQueue() {
             if (!MessageQueue.Exists(queuePath)) {
                 MessageQueue.Create(queuePath);
+            }
+        }
+
+        static void DeleteQueue() {
+            if (MessageQueue.Exists(queuePath)) {
+                MessageQueue.Delete(queuePath);
             }
         }
 

@@ -12,6 +12,11 @@ namespace SimpleDBClient {
             Process currentProcess = Process.GetCurrentProcess();
             string path = CreateQueue(currentProcess.Id);
 
+            // No sinal de interrupção, deletar a fila
+            Console.CancelKeyPress += delegate(object? sender, ConsoleCancelEventArgs e) {
+                DeleteQueue(path);
+            };
+
             while (true) {
                 string? entrada = Console.ReadLine();
 
@@ -20,36 +25,62 @@ namespace SimpleDBClient {
                 string[] entradaSeparada = entrada.Split(" ", 2);
                 string metodo = entradaSeparada[0];
 
-                Requisicao comando = new Requisicao();
-                comando.path = path;
+                if (metodo == "quit") {
+                    DeleteQueue(path);
+                    return;
+                }
 
-                switch (metodo) {
-                    case "insert":
-                        comando.op = Operacao.Inserir;
-                        break;
-                    case "remove":
-                        comando.op = Operacao.Remover;
-                        break;
-                    case "search":
-                        comando.op = Operacao.Procurar;
-                        break;
-                    case "update":
-                        comando.op = Operacao.Atualizar;
-                        break;
-                    case "quit":
-                        DeleteQueue(path);
-                        return;
+                if (entradaSeparada.Length < 2) {
+                    Console.WriteLine("invalid command");
+                    continue;
                 }
 
                 string[] valores = entradaSeparada[1].Split(",", 2);
 
-                int chave = int.Parse(valores[0]);
-                comando.chave = chave;
+                int chave;
 
-                if (valores.Length > 1) {
-                    comando.valor = valores[1];
+                if (!int.TryParse(valores[0], out chave)) {
+                    Console.WriteLine("invalid command");
+                    continue;
                 }
 
+                string? valor = null;
+
+                if (valores.Length > 1) {
+                    valor = valores[1];
+                }
+
+                Requisicao? comando = null;
+
+                switch(metodo) {
+                    case "insert":
+                        if (valor == null) {
+                            Console.WriteLine("invalid command");
+                            continue;
+                        }
+
+                        comando = Insert(chave, valor);
+                        break;
+                    case "remove":
+                        comando = Remove(chave);
+                        break;
+                    case "search":
+                        comando = Search(chave);
+                        break;
+                    case "update":
+                        if (valor == null) {
+                            Console.WriteLine("invalid command");
+                            continue;
+                        }
+
+                        comando = Update(chave, valor);
+                        break;
+                    default:
+                        Console.WriteLine("invalid command");
+                        continue;
+                }
+
+                comando.path = path;
 
                 MessageQueue messageQueue = new MessageQueue(servidorQueuePath);
                 messageQueue.Formatter = new XmlMessageFormatter(new Type[]{typeof(Requisicao)});
@@ -63,18 +94,47 @@ namespace SimpleDBClient {
                     messageQueue.Close();
 
                     Message cliMessage = cliMessageQueue.Receive();
-                    string resposta = (string)cliMessage.Body;
+                    string resposta = (string) cliMessage.Body;
                     cliMessageQueue.Close();
 
                     Console.WriteLine(resposta);
 
-                }
-                catch (MessageQueueException e) {
+                } catch (MessageQueueException e) {
                     Console.WriteLine("error: " + e.Message);
                 } catch (InvalidOperationException e) {
                     Console.WriteLine("error: " + e.Message);
                 }
             }
+        }
+
+        public static Requisicao Insert(int chave, string valor) {
+            Requisicao comando = new Requisicao();
+            comando.op = Operacao.Inserir;
+            comando.chave = chave;
+            comando.valor = valor;
+            return comando;
+        }
+
+        public static Requisicao Remove(int chave) {
+            Requisicao comando = new Requisicao();
+            comando.op = Operacao.Remover;
+            comando.chave = chave;
+            return comando;
+        }
+
+        public static Requisicao Search(int chave) {
+            Requisicao comando = new Requisicao();
+            comando.op = Operacao.Procurar;
+            comando.chave = chave;
+            return comando;
+        }
+
+        public static Requisicao Update(int chave, string valor) {
+            Requisicao comando = new Requisicao();
+            comando.op = Operacao.Atualizar;
+            comando.chave = chave;
+            comando.valor = valor;
+            return comando;
         }
 
         static string CreateQueue(int id) {
@@ -89,5 +149,6 @@ namespace SimpleDBClient {
             if (MessageQueue.Exists(path)) {
                 MessageQueue.Delete(path);
             }
+        }
     }
 }
