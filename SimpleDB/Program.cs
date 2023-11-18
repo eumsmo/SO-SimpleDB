@@ -38,14 +38,15 @@ namespace SimpleDB
                     thread.Start();
                 } catch (MessageQueueException e) {
                     Console.WriteLine("error: " + e.Message);
-                } catch (InvalidOperationException e) {
-                    Console.WriteLine("error: " + e.Message);
                 }
             }
         }
 
         static void AnswerClient(BancoDeDados bancoDeDados, Requisicao requisicao) {
-            // FAZER: Testar se a requisição está correta (possui path e comando)
+            if(requisicao.path == null) 
+                return;
+            if(!MessageQueue.Exists(requisicao.path))
+                return;
 
             // Processando resposta
             string resposta = bancoDeDados.Executar(requisicao);
@@ -53,7 +54,16 @@ namespace SimpleDB
             // Enviando resposta
             MessageQueue cliMessageQueue = new MessageQueue(requisicao.path);
             cliMessageQueue.Formatter = new XmlMessageFormatter(new Type[]{typeof(string)});
-            cliMessageQueue.Send(new Message(resposta));
+            
+            try
+            {
+                cliMessageQueue.Send(new Message(resposta));
+            }
+            catch(MessageQueueException e)
+            {
+                Console.WriteLine("erro: " + e.Message);
+            }
+            
             cliMessageQueue.Close();
         }
 

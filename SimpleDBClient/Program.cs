@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using MSMQ.Messaging;
 using System.Diagnostics;
 
@@ -17,9 +17,8 @@ namespace SimpleDBClient {
                 DeleteQueue(path);
             };
 
-            while (true) {
+            while(true) {
                 string? entrada = Console.ReadLine();
-
                 if (entrada == null) continue;
 
                 string[] entradaSeparada = entrada.Split(" ", 2);
@@ -37,74 +36,78 @@ namespace SimpleDBClient {
 
                 string[] valores = entradaSeparada[1].Split(",", 2);
 
-                int chave;
-
-                if (!int.TryParse(valores[0], out chave)) {
+                Requisicao? comando = CriarRequisicao(metodo, valores);
+                if (comando == null) {
                     Console.WriteLine("invalid command");
                     continue;
                 }
 
-                string? valor = null;
-
-                if (valores.Length > 1) {
-                    valor = valores[1];
-                }
-
-                Requisicao? comando = null;
-
-                switch(metodo) {
-                    case "insert":
-                        if (valor == null) {
-                            Console.WriteLine("invalid command");
-                            continue;
-                        }
-
-                        comando = Insert(chave, valor);
-                        break;
-                    case "remove":
-                        comando = Remove(chave);
-                        break;
-                    case "search":
-                        comando = Search(chave);
-                        break;
-                    case "update":
-                        if (valor == null) {
-                            Console.WriteLine("invalid command");
-                            continue;
-                        }
-
-                        comando = Update(chave, valor);
-                        break;
-                    default:
-                        Console.WriteLine("invalid command");
-                        continue;
-                }
-
                 comando.path = path;
 
-                MessageQueue messageQueue = new MessageQueue(servidorQueuePath);
-                messageQueue.Formatter = new XmlMessageFormatter(new Type[]{typeof(Requisicao)});
-
-                MessageQueue cliMessageQueue = new MessageQueue(path);
-                cliMessageQueue.Formatter = new XmlMessageFormatter(new Type[] { typeof(string) });
-                cliMessageQueue.Purge();
-
-                try {
-                    messageQueue.Send(new Message(comando));
-                    messageQueue.Close();
-
-                    Message cliMessage = cliMessageQueue.Receive();
-                    string resposta = (string) cliMessage.Body;
-                    cliMessageQueue.Close();
-
-                    Console.WriteLine(resposta);
-
-                } catch (MessageQueueException e) {
-                    Console.WriteLine("error: " + e.Message);
-                } catch (InvalidOperationException e) {
-                    Console.WriteLine("error: " + e.Message);
-                }
+                FazerRequisicao(comando);
             }
+        }
+
+        static void FazerRequisicao(Requisicao comando) {
+            if (comando.path == null) return;
+            string path = comando.path;
+            
+
+            MessageQueue messageQueue = new MessageQueue(servidorQueuePath);
+            messageQueue.Formatter = new XmlMessageFormatter(new Type[]{typeof(Requisicao)});
+
+            MessageQueue cliMessageQueue = new MessageQueue(path);
+            cliMessageQueue.Formatter = new XmlMessageFormatter(new Type[]{typeof(string)});
+            cliMessageQueue.Purge();
+
+            try {
+                messageQueue.Send(new Message(comando));
+                messageQueue.Close();
+
+                Message cliMessage = cliMessageQueue.Receive();
+                string resposta = (string) cliMessage.Body;
+                cliMessageQueue.Close();
+
+                Console.WriteLine(resposta);
+            } catch (MessageQueueException e) {
+                Console.WriteLine("error: " + e.Message);
+            } catch (InvalidOperationException e) {
+                Console.WriteLine("error: " + e.Message);
+            }
+        }
+
+        static Requisicao? CriarRequisicao(string metodo, string[] valores) {
+            int chave;
+            string? valor = null;
+
+            if (!int.TryParse(valores[0], out chave)) {
+                return null;
+            }
+
+            if (valores.Length > 1) {
+                valor = valores[1];
+            }
+
+            Requisicao? comando = null;
+
+            switch(metodo) {
+                case "insert":
+                    if (valor != null)
+                        comando = Insert(chave, valor);
+                    break;
+                case "remove":
+                    comando = Remove(chave);
+                    break;
+                case "search":
+                    comando = Search(chave);
+                    break;
+                case "update":
+                    if (valor != null)
+                        comando = Update(chave, valor);
+                    break;
+            }
+
+            return comando;
         }
 
         public static Requisicao Insert(int chave, string valor) {
