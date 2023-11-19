@@ -155,6 +155,7 @@ namespace SimpleDB
             StreamReader arquivo = new StreamReader(arquivoPath);
 
             if (arquivo == null || arquivo.EndOfStream) {
+                semaphore.Release();
                 return null;
             }
 
