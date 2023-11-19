@@ -1,9 +1,4 @@
 ﻿# 🤔 Como rodar o Cliente
-Há duas maneiras de rodar o cliente:
-
- 1. Rodar o projeto
- 2. Rodar a build
-
 Ao rodar o cliente, precisamos saber quais são os comandos suportados. Todos estão listados no arquivo [comandos_cliente.md](./comandos_cliente.md)!
 
 ## ✉️ Habilitando o MSMQ
@@ -17,10 +12,3 @@ Para rodar o projeto primeiramente entramos na pasta `/SimpleDBClient/`, localiz
     dotnet run
 
 Ao rodar, o cliente aceitará os comandos pelo dispositivo de entrada padrão. Assim que recebido, é feita uma requisição para o Banco de Dados que o retorna uma resposta a ser impressa na saída padrão. Quando a resposta for exibida, volta a aceitar novas entradas do usuário.
-
-## 📄 Rodando a build
-A build está localizada na pasta `/Build/` do diretório principal. Dentro da pasta deve se executar o seguinte comando no terminal:
-
-    ./SimpleDBClient
-
-Assim como no projeto, aceita comandos pela entrada padrão e faz uma requisição ao Banco de Dados. Assim que respondida, volta a aguardar novas entradas do usuário.

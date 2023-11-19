@@ -11,20 +11,20 @@ Além dos requisitos funcionais listados anteriormente, o seu banco de dados dev
 
 ## Parte B
 O programa cliente deve oferecer os seguintes requisitos funcionais: 
-- [ ] **RF-6:** Suportar um comando de inserção de objetos no banco de dados.
-- [ ] **RF-7:** Suportar um comando de remoção de objetos no banco de dados. 
-- [ ] **RF-8:** Suportar um comando de atualização objetos no banco de dados. 
-- [ ] **RF-9:** Suportar um comando de pesquisa objetos no banco de dados.
+- [x] **RF-6:** Suportar um comando de inserção de objetos no banco de dados.
+- [x] **RF-7:** Suportar um comando de remoção de objetos no banco de dados. 
+- [x] **RF-8:** Suportar um comando de atualização objetos no banco de dados. 
+- [x] **RF-9:** Suportar um comando de pesquisa objetos no banco de dados.
 
 Além dos requisitos funcionais listados anteriormente, o seu banco de dados deve apresentar os seguintes requisitos não funcionais
 
-- [ ] **RFN-2:** Suportar a comunicação bidirecional com o programa cliente usando algum mecanismo de comunicação entre processos. 
-- [ ] **RFN-3:** Suportar o processamento concorrente de requisições no banco de dados, usando threads.
+- [x] **RFN-2:** Suportar a comunicação bidirecional com o programa cliente usando algum mecanismo de comunicação entre processos. 
+- [x] **RFN-3:** Suportar o processamento concorrente de requisições no banco de dados, usando threads.
 
 Quanto ao programa cliente do banco de dados, os seguintes requisitos não funcionais devem ser oferecidos:
 
-- [ ] **RFN-7:** Ler as requisições do dispositivo de entrada padrão. 
-- [ ] **RFN-8:** Escrever a resposta recebida das requisições feitas ao banco de dados no dispositivo de saída padrão.
+- [x] **RFN-7:** Ler as requisições do dispositivo de entrada padrão. 
+- [x] **RFN-8:** Escrever a resposta recebida das requisições feitas ao banco de dados no dispositivo de saída padrão.
 
 ## Parte C
 
