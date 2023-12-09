@@ -14,8 +14,9 @@ namespace SimpleDB
             CRUD bancoDeDados = new BancoDeDados(arquivoPath);
 
             if (args.Length > 0) {
-                GetLineCommands(args, bancoDeDados);
-                return;
+                if (GetLineCommands(args, ref bancoDeDados)) {
+                    return;
+                }
             }
 
             CreateQueue();
@@ -74,7 +75,7 @@ namespace SimpleDB
             }
         }
 
-        static void GetLineCommands(string[] args, CRUD bancoDeDados) {
+        static bool GetLineCommands(string[] args, ref CRUD bancoDeDados) {
             /*Args serão os argumentos do programa, o qual o usuário terá os seguintes comandos:
               . Inserir  . Remover  . Procurar  . Substituir
               
@@ -85,7 +86,7 @@ namespace SimpleDB
 
             if (separado.Length < 2) {
                 Console.WriteLine("invalid command: missing '='");
-                return;
+                return true;
             }
 
             string metodo = separado[0];
@@ -93,18 +94,18 @@ namespace SimpleDB
 
             if (valores[0] == "") {
                 Console.WriteLine("invalid command: key missing");
-                return;
+                return true;
             }
 
             int chave;
             if (!int.TryParse(valores[0], out chave)) {
                 Console.WriteLine("invalid command: key must be an integer");
-                return;
+                return true;
             }
 
             if (chave < 0) {
                 Console.WriteLine("invalid command: key must be positive");
-                return;
+                return true;
             }
 
             Comando comando = new Comando();
@@ -112,23 +113,28 @@ namespace SimpleDB
 
             switch (metodo) {
                 case "--insert":
-                    if (!CheckValueInput(valores)) return;
+                    if (!CheckValueInput(valores)) return true;
                     comando.valor = valores[1];
                     comando.op = Operacao.Inserir;
                     break;
                 case "--remove":
-                    if (!CheckKeyOnlyInput(valores)) return;
+                    if (!CheckKeyOnlyInput(valores)) return true;
                     comando.op = Operacao.Remover;
                     break;
                 case "--search":
-                    if (!CheckKeyOnlyInput(valores)) return;
+                    if (!CheckKeyOnlyInput(valores)) return true;
                     comando.op = Operacao.Procurar;
                     break;
                 case "--update":
-                    if (!CheckValueInput(valores)) return;
+                    if (!CheckValueInput(valores)) return true;
                     comando.valor = valores[1];
                     comando.op = Operacao.Atualizar;
                     break;
+                case "-cache-size":
+                case "--cache-size": // Por algum motivo as vezes o windows não aceita ',' se tiver apenas um '-' no argumento
+                    if (!CheckValueInput(valores)) return true;
+                    bancoDeDados = new BDCache(bancoDeDados, chave, valores[1]);
+                    return false;
                 default:
                     Console.WriteLine("invalid command: unknown command");
                     break;
@@ -140,6 +146,8 @@ namespace SimpleDB
             } catch (Exception e) {
                 Console.WriteLine("error: " + e.Message);
             }
+
+            return true;
         }
 
         static bool CheckValueInput(string[] valores) {
