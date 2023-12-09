@@ -11,7 +11,7 @@ namespace SimpleDB
         
         static void Main(string[] args)
         {
-            BancoDeDados bancoDeDados = new BancoDeDados(arquivoPath);
+            CRUD bancoDeDados = new BancoDeDados(arquivoPath);
 
             if (args.Length > 0) {
                 GetLineCommands(args, bancoDeDados);
@@ -23,10 +23,10 @@ namespace SimpleDB
             MessageQueue messageQueue = new MessageQueue(queuePath);
             messageQueue.Formatter = new XmlMessageFormatter(new Type[]{typeof(Requisicao)});
 
-            // No sinal de interrupção, deletar a fila 
-            Console.CancelKeyPress += delegate(object? sender, ConsoleCancelEventArgs e) { 
-                DeleteQueue(); 
-            }; 
+            // No sinal de interrupção, deletar a fila
+            Console.CancelKeyPress += delegate(object? sender, ConsoleCancelEventArgs e) {
+                DeleteQueue();
+            };
 
             while(true) {
                 try {
@@ -38,15 +38,13 @@ namespace SimpleDB
                     thread.Start();
                 } catch (MessageQueueException e) {
                     Console.WriteLine("error: " + e.Message);
-                }
+                } 
             }
         }
 
-        static void AnswerClient(BancoDeDados bancoDeDados, Requisicao requisicao) {
-            if(requisicao.path == null) 
-                return;
-            if(!MessageQueue.Exists(requisicao.path))
-                return;
+        static void AnswerClient(CRUD bancoDeDados, Requisicao requisicao) {
+            if (requisicao.path == null) return;
+            if (!MessageQueue.Exists(requisicao.path)) return;
 
             // Processando resposta
             string resposta = bancoDeDados.Executar(requisicao);
@@ -54,16 +52,13 @@ namespace SimpleDB
             // Enviando resposta
             MessageQueue cliMessageQueue = new MessageQueue(requisicao.path);
             cliMessageQueue.Formatter = new XmlMessageFormatter(new Type[]{typeof(string)});
-            
-            try
-            {
+
+            try {
                 cliMessageQueue.Send(new Message(resposta));
+            } catch (MessageQueueException e) {
+                Console.WriteLine("error: " + e.Message);
             }
-            catch(MessageQueueException e)
-            {
-                Console.WriteLine("erro: " + e.Message);
-            }
-            
+
             cliMessageQueue.Close();
         }
 
@@ -79,7 +74,7 @@ namespace SimpleDB
             }
         }
 
-        static void GetLineCommands(string[] args, BancoDeDados bancoDeDados) {
+        static void GetLineCommands(string[] args, CRUD bancoDeDados) {
             /*Args serão os argumentos do programa, o qual o usuário terá os seguintes comandos:
               . Inserir  . Remover  . Procurar  . Substituir
               
