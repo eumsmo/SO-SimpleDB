@@ -210,5 +210,9 @@ namespace SimpleDB
 
             return editou;
         }
+    
+        public override void Fechar() {
+            // Não é necessário fechar o arquivo, pois o mesmo já foi fechado em cada método
+        }
     }
 }

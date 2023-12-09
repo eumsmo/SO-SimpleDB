@@ -29,5 +29,6 @@ namespace SimpleDB  {
         public abstract bool Remover(int chave);
         public abstract string? Buscar(int chave);
         public abstract bool Atualizar(int chave, string novoValor);
+        public abstract void Fechar();
     }
 }

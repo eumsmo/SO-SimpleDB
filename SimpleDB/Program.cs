@@ -26,6 +26,7 @@ namespace SimpleDB
 
             // No sinal de interrupção, deletar a fila
             Console.CancelKeyPress += delegate(object? sender, ConsoleCancelEventArgs e) {
+                bancoDeDados.Fechar();
                 DeleteQueue();
             };
 
