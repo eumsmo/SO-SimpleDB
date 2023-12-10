@@ -12,3 +12,12 @@ Para rodar o projeto primeiramente entramos na pasta `/SimpleDB/`, localizada no
     dotnet run [comando]
 
 Se o comando for passado, executa o comando e encerra o processo. Se o comando for emitido, inicia a comunicação utilizando *MSMQ*.
+
+## 📂 Rodando o projeto com Cache
+Para rodar o projeto utilizando uma cache intermediária é necessário executar os mesmos passos de rodar o projeto normalmente, porém passando um comando que habilita a cache.
+
+    dotnet run --cache-size=tamanho,politica
+
+Ao rodar com uma cache, os valores serão guardados em memória principal antes de serem salvos na memória secundária. 
+
+Os possíveis valores dos parâmetros `tamanho` e `politica` estão descritos no arquivo [comandos_bd.md](#./comandos_bd.md).

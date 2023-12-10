@@ -41,13 +41,7 @@ namespace SimpleDB {
             leitores = 0;
         }
 
-        protected virtual void PrintCache() {
-            Console.Write("[");
-            foreach (Registro registro in cache) {
-                Console.Write(registro.chave + " ");
-            }
-            Console.WriteLine("]");
-        }
+        #region Multithreading helpers
 
         protected void DownLeitores() {
             mutex.WaitOne();
@@ -71,13 +65,25 @@ namespace SimpleDB {
             semaphore.Release();
         }
 
+        #endregion
+
+        #region Controle de cache
+
+        protected virtual Registro CreateRegistro(int chave, string valor) {
+            Registro registro = new Registro(chave, valor);
+            registro.bitR = true;
+            return registro;
+        }
+
         Registro? GetRegistroInCache(int chave) {
+            DownLeitores();
             foreach (Registro registro in cache) {
                 if (registro.chave == chave) {
+                    UpLeitores();
                     return registro;
                 }
             }
-
+            UpLeitores();
             return null;
         }
 
@@ -91,37 +97,26 @@ namespace SimpleDB {
         }
 
         protected Registro? GetRegistro(int chave) {
-            DownLeitores();
             Registro? registro = GetRegistroInCache(chave);
-            UpLeitores();
 
             if (registro != null) {
-                //Console.Write("Cache hit: ");
-                //PrintCache();
+                Console.WriteLine("Cache hit: " + ToString());
                 return registro;
             }
 
+            // Se o registro não está na cache, tenta buscar no banco de dados
             registro = GetRegistroInDatabase(chave);
             if (registro != null) {
-                //Console.Write("Cache miss: ");
-                //PrintCache();
+                Console.WriteLine("Cache miss: " + ToString());
                 InsertInCache(registro);
-                //Console.Write("Cache after insert: ");
-                //PrintCache();
+                Console.WriteLine("Cache after insert: " + ToString());
                 return registro;
             }
 
             return null;
         }
 
-        protected void ExecutarRegistro(Registro registro) {
-            if (registro.valor == null) bancoDeDados.Remover(registro.chave);
-            else if (registro.novo) bancoDeDados.Inserir(registro.chave, registro.valor);
-            else if(registro.bitM)  bancoDeDados.Atualizar(registro.chave, registro.valor);
-        }
-
-        void InsertInCache(Registro registro) {            
-            
+        protected void InsertInCache(Registro registro) {
             if (cache.Count >= size) SubstituirRegistro(registro);
             else {
                 DownEscritores();
@@ -130,9 +125,8 @@ namespace SimpleDB {
             }
         }
 
-        // Algortimos de substituição de página
         protected virtual Registro GetRegistroASubstituir() {
-            return cache[0];
+            return cache[0]; // Por padrão, utiliza a politica FIFO
         }
 
         protected void SubstituirRegistro(Registro registro) {
@@ -145,12 +139,17 @@ namespace SimpleDB {
             Thread thread = new Thread(() => ExecutarRegistro(saiu));
             thread.Start();
         }
-
-        protected virtual Registro CreateRegistro(int chave, string valor) {
-            Registro registro = new Registro(chave, valor);
-            registro.bitR = true;
-            return registro;
+        
+        // Executa um registro da cache no banco de dados
+        protected void ExecutarRegistro(Registro registro) {
+            if (registro.valor == null) bancoDeDados.Remover(registro.chave);
+            else if (registro.novo) bancoDeDados.Inserir(registro.chave, registro.valor);
+            else if(registro.bitM)  bancoDeDados.Atualizar(registro.chave, registro.valor);
         }
+
+        #endregion
+
+        #region Metodos do CRUD
 
         public override bool Inserir(int chave, string valor) {
             Registro? registro = GetRegistro(chave);
@@ -160,7 +159,8 @@ namespace SimpleDB {
                 registro.novo = true;
                 registro.bitM = true;
                 InsertInCache(registro);
-            } else if (registro.valor == null) { // Marcado para deleção na cache
+            } else if (registro.valor == null) {
+                // Se o registro está marcado para deleção na cache, muda a operaçao para atualizar
                 DownEscritores();
                 registro.valor = valor;
                 registro.bitM = true;
@@ -177,6 +177,7 @@ namespace SimpleDB {
 
             DownEscritores();
             if (registro.novo) {
+                // Se o registro foi criado na cache mas não foi inserido no banco de dados, apenas remove da cache
                 cache.Remove(registro);
                 UpEscritores();
 
@@ -204,7 +205,7 @@ namespace SimpleDB {
 
         public override bool Atualizar(int chave, string novoValor) {
             Registro? registro = GetRegistro(chave);
-            if (registro == null || registro.valor == null) return false;
+            if (registro == null || registro.valor == null) return false; // Ignora se o registro não existe ou foi removido
 
             DownEscritores();
             registro.valor = novoValor;
@@ -216,6 +217,7 @@ namespace SimpleDB {
         }
     
         public override void Fechar() {
+            // Executa todos os registros da cache no banco de dados antes de fechar
             foreach (Registro registro in cache) {
                 ExecutarRegistro(registro);
             }
@@ -224,7 +226,19 @@ namespace SimpleDB {
         }
 
         public override void Update() {
-            bancoDeDados.Update();
+            // Na politica FIFO, não é necessário fazer nada
+        }
+
+        #endregion
+
+        // Utilizado para debug
+        public override string ToString() {
+            string text = "[";
+            foreach (Registro registro in cache) {
+                text += registro.chave + " ";
+            }
+            text += "]";
+            return text;
         }
 
         public static BDCache? GetCache(CRUD bancoDeDados, int size, string algoritmo) {

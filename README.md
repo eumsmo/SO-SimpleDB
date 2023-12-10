@@ -3,7 +3,7 @@
 
 Este repositório contém o projeto e documentação do Trabalho Prático Banco de Dados Chave-Valor.  
 
-O projeto foi desenvolvido com `C#`, armazena dados no arquivo `simpledb.db` e utiliza `MSMQ` como comunicação entre o Cliente e o Banco de Dados. Além disso, o Banco de Dados permite o processamento concorrente de requisições utilizando `Threads`. 
+O projeto foi desenvolvido com `C#`, armazena dados no arquivo `simpledb.db` e utiliza `MSMQ` como comunicação entre o Cliente e o Banco de Dados. Além disso, o Banco de Dados permite o processamento concorrente de requisições utilizando `Threads` e uma `cache` que mantém dados em memória principal antes de passar para a secundária.
 
 A documentação referente ao projeto pode ser encontrada na pasta `/Documentacao/`.
 Saiba como funciona o projeto no arquivo [como_funciona.md](./Documentacao/como_funciona.md)!

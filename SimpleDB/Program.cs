@@ -34,6 +34,7 @@ namespace SimpleDB
                 running = false;
             };
 
+            // Alguns algoritmos de cache precisam de um método chamado a cada intervalo de tempo
             if (bancoDeDados is LRUCache || bancoDeDados is AgingCache) {
                 Thread thread = new Thread(() => UpdateCache(bancoDeDados));
                 thread.Start();

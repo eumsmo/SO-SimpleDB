@@ -1,5 +1,7 @@
 ﻿# 🤔 Como funciona?
-O projeto possui dois projetos diferentes: o Cliente e o Banco de Dados. O Cliente recebe o input do usuário na entrada padrão e envia requisições para o Banco de Dados utilizando o *Message Queue da Microsoft (MSMQ)*. Então, o Banco de Dados recebe a requisição e executa a operação desejada em uma Thread separada, ou seja, ele permite múltiplos leitores simultâneos. Após executar a operação, retorna o resultado para o Message Queue do Cliente.
+O projeto possui dois projetos diferentes: o Cliente e o Banco de Dados. O Cliente recebe o input do usuário na entrada padrão e envia requisições para o Banco de Dados utilizando o *Message Queue da Microsoft (MSMQ)*. Então, o Banco de Dados recebe a requisição e executa a operação desejada em uma Thread separada, ou seja, ele permite múltiplos leitores simultâneos. Após executar a operação, retorna o resultado para o Message Queue do Cliente. 
+
+O Banco de Dados pode estar rodando diretamente executando as operações na memória secundária ou com uma cache executando na memória principal. Isso é definido por um comando passado por parâmetro do banco de dados.
 
 
 ## ✉️ O que é o Message Queue (MSMQ)?
@@ -23,4 +25,9 @@ Ao iniciar, o Cliente aguarda a entrada do usuário. Assim que uma entrada valid
 
 Para rodar o Cliente, siga os passos do arquivo [como_rodar_cliente.md](./como_rodar_cliente.md)!
 
+## 💵 Como funciona a Cache?
+A cache é um caso especial onde as operações ocorrem diretamente nos dados carregados na memória principal. É mantida uma lista de registros com tamanho máximo definido no parâmetro, e quando precisamos de um dado, ele é puxado do banco de dados e mantido na cache. 
 
+Quando a lista inteira estiver ocupada, utilizamos um algoritmo de substituição para remover um registro da cache e substitui-lo pelo novo registro. Então, o registro removido é finalmente executado no banco de dados, criando então uma escrita adiada.
+
+Em termos de implementação, cada algoritmo de substituição é sua própria classe que é selecionada a partir do parâmetro `politica`. Para rodar o banco de dados com cache, veja os comandos descritos no arquivo [comandos_bd.md](#./comandos_bd.md)!
