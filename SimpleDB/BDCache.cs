@@ -187,6 +187,8 @@ namespace SimpleDB {
                     return new BDCache(bancoDeDados, size);
                 case "LRU":
                     return new LRUCache(bancoDeDados, size);
+                case "Aging":
+                    return new AgingCache(bancoDeDados, size);
                 default:
                     return null;
             }

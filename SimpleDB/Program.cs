@@ -33,7 +33,7 @@ namespace SimpleDB
                 running = false;
             };
 
-            if(bancoDeDados is LRUCache){
+            if (bancoDeDados is LRUCache || bancoDeDados is AgingCache) {
                 Thread thread = new Thread(() => UpdateCache(bancoDeDados));
                 thread.Start();
             }
