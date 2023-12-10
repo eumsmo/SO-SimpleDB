@@ -8,9 +8,10 @@ namespace SimpleDB
     {
         const string arquivoPath = "simpledb.db"; // banco de dados
         const string queuePath = ".\\Private$\\SimpleDBQueue"; // fila de mensagens
-        
-        static bool running = true;
+        const int cacheUpdateInterval = 1000; // intervalo de tempo para atualizar o cache
 
+        static bool running = true;
+        
         static void Main(string[] args)
         {
             CRUD bancoDeDados = new BancoDeDados(arquivoPath);
@@ -38,17 +39,23 @@ namespace SimpleDB
                 thread.Start();
             }
 
-            while(running){
-                try{
+            while(running) {
+                try {
                     Message message = messageQueue.Receive();
                     Requisicao requisicao = (Requisicao) message.Body;
-                }
+
+                    // Criando thread para responder o cliente
+                    Thread thread = new Thread(() => AnswerClient(bancoDeDados, requisicao));
+                    thread.Start();
+                } catch (MessageQueueException e) {
+                    Console.WriteLine("error: " + e.Message);
+                } 
             }
         }
 
-        static void UpdateCache(CRUD bancoDeDados){
-            while(running){
-                Thread.Sleep(1000);
+        static void UpdateCache(CRUD bancoDeDados) {
+            while (running) {
+                Thread.Sleep(cacheUpdateInterval);
                 bancoDeDados.Update();
             }
         }
@@ -144,8 +151,8 @@ namespace SimpleDB
                 case "--cache-size": // Por algum motivo as vezes o windows não aceita ',' se tiver apenas um '-' no argumento
                     if (!CheckValueInput(valores)) return true;
                     CRUD? bd = BDCache.GetCache(bancoDeDados, chave, valores[1]);
-                    if(bd == null){
-                        Console.WriteLine("invalid command: invalid cache value");
+                    if (bd == null) {
+                        Console.WriteLine("invalid command: invalid cache values");
                         return true;
                     }
                     bancoDeDados = bd;

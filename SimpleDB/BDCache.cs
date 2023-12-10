@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace SimpleDB {
 
@@ -24,27 +25,55 @@ namespace SimpleDB {
         public List<Registro> cache;
         public int size;
 
+        protected Semaphore semaphore;
+        protected Mutex mutex;
+        protected int leitores;
+
         public CRUD bancoDeDados;
 
         public BDCache(CRUD bancoDeDados, int size) {
             this.bancoDeDados = bancoDeDados;
             this.size = size;
             cache = new List<Registro>(size);
+
+            mutex = new Mutex();
+            semaphore = new Semaphore(1, 1);
+            leitores = 0;
         }
 
-        protected virtual void PrintCache(){
+        protected virtual void PrintCache() {
             Console.Write("[");
-            foreach(Registro registro in cache)
-            {
+            foreach (Registro registro in cache) {
                 Console.Write(registro.chave + " ");
             }
             Console.WriteLine("]");
         }
 
+        protected void DownLeitores() {
+            mutex.WaitOne();
+            leitores++;
+            if (leitores == 1) semaphore.WaitOne();
+            mutex.ReleaseMutex();
+        }
+
+        protected void UpLeitores() {
+            mutex.WaitOne();
+            leitores--;
+            if (leitores == 0) semaphore.Release();
+            mutex.ReleaseMutex();
+        }
+
+        protected void DownEscritores() {
+            semaphore.WaitOne();
+        }
+
+        protected void UpEscritores() {
+            semaphore.Release();
+        }
+
         Registro? GetRegistroInCache(int chave) {
             foreach (Registro registro in cache) {
                 if (registro.chave == chave) {
-                    registro.bitR = true;
                     return registro;
                 }
             }
@@ -55,29 +84,29 @@ namespace SimpleDB {
         Registro? GetRegistroInDatabase(int chave) {
             string? valor = bancoDeDados.Buscar(chave);
 
-            if (valor == null) {
-                return null;
-            }
+            if (valor == null) return null;
 
             Registro registro = CreateRegistro(chave, valor);
             return registro;
         }
 
         protected Registro? GetRegistro(int chave) {
+            DownLeitores();
             Registro? registro = GetRegistroInCache(chave);
+            UpLeitores();
 
             if (registro != null) {
-                //Console.WriteLine(">>> Cache hit");
+                //Console.Write("Cache hit: ");
                 //PrintCache();
                 return registro;
             }
 
             registro = GetRegistroInDatabase(chave);
-            if(registro != null){
-                //Console.WriteLine(">>> Cache miss");
+            if (registro != null) {
+                //Console.Write("Cache miss: ");
                 //PrintCache();
                 InsertInCache(registro);
-                //Console.WriteLine("Cache insert");
+                //Console.Write("Cache after insert: ");
                 //PrintCache();
                 return registro;
             }
@@ -91,34 +120,33 @@ namespace SimpleDB {
             else if(registro.bitM)  bancoDeDados.Atualizar(registro.chave, registro.valor);
         }
 
-        protected bool InsertInCache(Registro registro) {
-            // Se o registro já está na cache, não precisa colocar o valor novamente
-            if(GetRegistroInCache(registro.chave) != null) return false;
-
-            if(cache.Count >= size)
-                SubstituirPagina(registro);
-            else
-                cache.Add(registro);
+        void InsertInCache(Registro registro) {            
             
-            return true;
+            if (cache.Count >= size) SubstituirRegistro(registro);
+            else {
+                DownEscritores();
+                cache.Add(registro);
+                UpEscritores();
+            }
         }
 
-        //Algortimos de substituição de página
-        protected virtual void SubstituirPagina(Registro registro){
-            Registro saiu = cache[0];
-            cache.RemoveAt(0);
+        // Algortimos de substituição de página
+        protected virtual Registro GetRegistroASubstituir() {
+            return cache[0];
+        }
 
-            //Executar o registro em uma outra thread?
-            ExecutarRegistro(saiu);
-
+        protected void SubstituirRegistro(Registro registro) {
+            DownEscritores();
+            Registro saiu = GetRegistroASubstituir();
+            cache.Remove(saiu);
             cache.Add(registro);
+            UpEscritores();
+
+            Thread thread = new Thread(() => ExecutarRegistro(saiu));
+            thread.Start();
         }
 
-        void RemoveFromCache(Registro registro) {
-            cache.Remove(registro);
-        }
-
-        protected virtual Registro CreateRegistro(int chave, string valor){
+        protected virtual Registro CreateRegistro(int chave, string valor) {
             Registro registro = new Registro(chave, valor);
             registro.bitR = true;
             return registro;
@@ -133,8 +161,11 @@ namespace SimpleDB {
                 registro.bitM = true;
                 InsertInCache(registro);
             } else if (registro.valor == null) { // Marcado para deleção na cache
+                DownEscritores();
                 registro.valor = valor;
                 registro.bitM = true;
+                registro.bitR = true;
+                UpEscritores();
             } else return false;
 
             return true;
@@ -143,13 +174,19 @@ namespace SimpleDB {
         public override bool Remover(int chave) {
             Registro? registro = GetRegistro(chave);
             if (registro == null) return false;
+
+            DownEscritores();
             if (registro.novo) {
-                RemoveFromCache(registro);
+                cache.Remove(registro);
+                UpEscritores();
+
                 return true;
             }
 
             registro.valor = null;
             registro.bitM = true;
+            registro.bitR = true;
+            UpEscritores();
 
             return true;
         }
@@ -158,6 +195,10 @@ namespace SimpleDB {
             Registro? registro = GetRegistro(chave);
             if (registro == null) return null;
 
+            DownEscritores();
+            registro.bitR = true;
+            UpEscritores();
+
             return registro.valor;
         }
 
@@ -165,8 +206,11 @@ namespace SimpleDB {
             Registro? registro = GetRegistro(chave);
             if (registro == null || registro.valor == null) return false;
 
+            DownEscritores();
             registro.valor = novoValor;
             registro.bitM = true;
+            registro.bitR = true;
+            UpEscritores();
 
             return true;
         }
@@ -179,10 +223,14 @@ namespace SimpleDB {
             bancoDeDados.Fechar();
         }
 
-        public static BDCache? GetCache(CRUD bancoDeDados, int size, string algoritmo){
-            if(size <= 0) return null;
+        public override void Update() {
+            bancoDeDados.Update();
+        }
 
-            switch(algoritmo){
+        public static BDCache? GetCache(CRUD bancoDeDados, int size, string algoritmo) {
+            if (size <= 0) return null;
+
+            switch (algoritmo) {
                 case "FIFO":
                     return new BDCache(bancoDeDados, size);
                 case "LRU":

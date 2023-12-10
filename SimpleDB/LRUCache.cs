@@ -14,27 +14,21 @@ namespace SimpleDB {
             Console.WriteLine("]");
         }
 
-        protected override void SubstituirPagina(Registro registro) {
-            Registro? candidato = null;
-            int index = -1;
-            int maiorPrioridade = -1;
+        protected override Registro GetRegistroASubstituir() {
+            Registro candidato = cache[0];
+            int maiorPrioridade = (candidato.bitR ? 0 : 2) + (candidato.bitM ? 0 : 1);
 
-            for (int i = 0; i < cache.Count; i++) {
+            for (int i = 1; i < cache.Count; i++) {
                 Registro reg = cache[i];
                 int prioridade = (reg.bitR ? 0 : 2) + (reg.bitM ? 0 : 1);
 
                 if (prioridade > maiorPrioridade) {
                     candidato = reg;
-                    index = i;
                     maiorPrioridade = prioridade;
                 }
             }
 
-            if (candidato == null) return;
-
-            cache.RemoveAt(index);
-            ExecutarRegistro(candidato);
-            cache.Add(registro);
+            return candidato;
         }
 
         public override void Update() {

@@ -28,26 +28,20 @@ namespace SimpleDB {
             return registro;
         }
 
-        protected override void SubstituirPagina(Registro registro) {
-            AgingRegistro? candidato = null;
-            int index = -1;
-            int menorContador = int.MaxValue;
+        protected override Registro GetRegistroASubstituir() {
+            AgingRegistro candidato = (AgingRegistro) cache[0];
+            int menorContador = candidato.contador;
 
-            for (int i = 0; i < cache.Count; i++) {
+            for (int i = 1; i < cache.Count; i++) {
                 AgingRegistro reg = (AgingRegistro) cache[i];
 
-                if (reg.contador < menorContador) {
+                if (candidato == null || reg.contador < menorContador) {
                     candidato = reg;
-                    index = i;
                     menorContador = reg.contador;
                 }
             }
 
-            if (candidato == null) return;
-
-            cache.RemoveAt(index);
-            ExecutarRegistro(candidato);
-            cache.Add(registro);
+            return candidato;
         }
 
         public override void Update() {
