@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 
@@ -213,6 +214,10 @@ namespace SimpleDB
     
         public override void Fechar() {
             // Não é necessário fechar o arquivo, pois o mesmo já foi fechado em cada método
+        }
+
+        public override void Update() {
+            // Não é necessário atualizar o arquivo
         }
     }
 }

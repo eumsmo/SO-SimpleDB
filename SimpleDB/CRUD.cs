@@ -30,5 +30,6 @@ namespace SimpleDB  {
         public abstract string? Buscar(int chave);
         public abstract bool Atualizar(int chave, string novoValor);
         public abstract void Fechar();
+        public abstract void Update();
     }
 }
