@@ -100,16 +100,16 @@ namespace SimpleDB {
             Registro? registro = GetRegistroInCache(chave);
 
             if (registro != null) {
-                Console.WriteLine("Cache hit: " + ToString());
+                //Console.WriteLine("Cache hit: " + ToString());
                 return registro;
             }
 
             // Se o registro não está na cache, tenta buscar no banco de dados
             registro = GetRegistroInDatabase(chave);
             if (registro != null) {
-                Console.WriteLine("Cache miss: " + ToString());
+                //Console.WriteLine("Cache miss: " + ToString());
                 InsertInCache(registro);
-                Console.WriteLine("Cache after insert: " + ToString());
+                //Console.WriteLine("Cache after insert: " + ToString());
                 return registro;
             }
 
